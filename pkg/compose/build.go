@@ -70,6 +70,13 @@ func (s *composeService) Build(ctx context.Context, project *types.Project, opti
 
 //nolint:gocyclo
 func (s *composeService) build(ctx context.Context, project *types.Project, options api.BuildOptions, localImages map[string]api.ImageSummary) (map[string]string, error) {
+	// Enhance project with build.depends_on support
+	project, enhanceErr := EnhanceProjectWithBuildDependsOn(project)
+	if enhanceErr != nil {
+		logrus.Warnf("Failed to enhance project with build dependencies: %v", enhanceErr)
+		// Continue without enhancement rather than failing
+	}
+
 	imageIDs := map[string]string{}
 	serviceToBuild := types.Services{}
 
@@ -211,13 +218,13 @@ func (s *composeService) build(ctx context.Context, project *types.Project, opti
 			return fmt.Errorf("failed to start build dependencies for %s: %w", name, err)
 		}
 		// Ensure we clean up build dependencies when done
-		defer func() {
-			if len(startedDeps) > 0 {
-				if cleanupErr := s.stopBuildDependencies(ctx, project, startedDeps); cleanupErr != nil {
-					logrus.Warnf("Failed to stop build dependencies for %s: %v", name, cleanupErr)
+		defer func(deps []string, serviceName string) {
+			if len(deps) > 0 {
+				if cleanupErr := s.stopBuildDependencies(ctx, project, deps); cleanupErr != nil {
+					logrus.Warnf("Failed to stop build dependencies for %s: %v", serviceName, cleanupErr)
 				}
 			}
-		}()
+		}(startedDeps, name)
 
 		if !buildkitEnabled {
 			trace.SpanFromContext(ctx).SetAttributes(attribute.String("builder", "classic"))

@@ -72,7 +72,7 @@ func getBuildDependsOn(service types.ServiceConfig) []string {
 // startBuildDependencies starts the services that a build depends on
 func (s *composeService) startBuildDependencies(ctx context.Context, project *types.Project, serviceName string) ([]string, error) {
 	service := project.Services[serviceName]
-	buildDeps := getBuildDependsOn(service)
+	buildDeps := getBuildDependsOnEnhanced(service)
 	if len(buildDeps) == 0 {
 		return nil, nil
 	}
