@@ -30,6 +30,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/docker/compose/v2/pkg/api"
+	"github.com/docker/compose/v2/pkg/compose"
 )
 
 type buildOptions struct {
@@ -146,10 +147,28 @@ func buildCommand(p *ProjectOptions, dockerCli command.Cli, backend api.Service)
 
 func runBuild(ctx context.Context, dockerCli command.Cli, backend api.Service, opts buildOptions, services []string) error {
 	opts.All = true // do not drop resources as build may involve some dependencies by additional_contexts
+	
+	// Preprocess compose files to extract and remove build.depends_on
+	extractedData, tempFiles, err := compose.PreprocessComposeBuildDependsOn(opts.ConfigPaths)
+	if err != nil {
+		return err
+	}
+	defer compose.CleanupTempFiles(tempFiles)
+	
+	// Temporarily replace config paths with preprocessed files
+	originalConfigPaths := opts.ConfigPaths
+	opts.ConfigPaths = tempFiles
+	
 	project, _, err := opts.ToProject(ctx, dockerCli, nil, cli.WithResolvedPaths(true), cli.WithoutEnvironmentResolution)
 	if err != nil {
 		return err
 	}
+	
+	// Restore original config paths
+	opts.ConfigPaths = originalConfigPaths
+	
+	// Restore build.depends_on as extensions
+	project = compose.RestoreBuildDependsOn(project, extractedData)
 
 	if err := applyPlatforms(project, false); err != nil {
 		return err
