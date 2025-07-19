@@ -205,6 +205,20 @@ func (s *composeService) build(ctx context.Context, project *types.Project, opti
 		}
 		serviceName := fmt.Sprintf("Service %s", name)
 
+		// Start build dependencies if any
+		startedDeps, err := s.startBuildDependencies(ctx, project, name)
+		if err != nil {
+			return fmt.Errorf("failed to start build dependencies for %s: %w", name, err)
+		}
+		// Ensure we clean up build dependencies when done
+		defer func() {
+			if len(startedDeps) > 0 {
+				if cleanupErr := s.stopBuildDependencies(ctx, project, startedDeps); cleanupErr != nil {
+					logrus.Warnf("Failed to stop build dependencies for %s: %v", name, cleanupErr)
+				}
+			}
+		}()
+
 		if !buildkitEnabled {
 			trace.SpanFromContext(ctx).SetAttributes(attribute.String("builder", "classic"))
 			cw.Event(progress.BuildingEvent(serviceName))
