@@ -5,7 +5,7 @@
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
-       http://www.apache.org/licenses/LICENSE-2.0
+	   http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,6 +17,7 @@
 package compose
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -33,6 +34,9 @@ type BuildDependsOnData struct {
 // PreprocessComposeBuildDependsOn removes build.depends_on from compose files to avoid schema validation errors
 // Returns the extracted build.depends_on data and paths to temporary files without build.depends_on
 func PreprocessComposeBuildDependsOn(configPaths []string) ([]BuildDependsOnData, []string, error) {
+	// Log to CLI when preprocessing starts
+	fmt.Println("[compose] PreprocessComposeBuildDependsOn called: preprocessing compose files for build.depends_on")
+
 	var extractedData []BuildDependsOnData
 	var tempFiles []string
 

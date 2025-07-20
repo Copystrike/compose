@@ -5,7 +5,7 @@
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
-       http://www.apache.org/licenses/LICENSE-2.0
+	   http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,6 +35,7 @@ import (
 	"github.com/docker/compose/v2/pkg/api"
 	ui "github.com/docker/compose/v2/pkg/progress"
 	"github.com/docker/compose/v2/pkg/utils"
+	composepkg "github.com/docker/compose/v2/pkg/compose"
 )
 
 // composeOptions hold options common to `up` and `run` to run compose project
@@ -117,6 +118,14 @@ func upCommand(p *ProjectOptions, dockerCli command.Cli, backend api.Service) *c
 		Use:   "up [OPTIONS] [SERVICE...]",
 		Short: "Create and start containers",
 		PreRunE: AdaptCmd(func(ctx context.Context, cmd *cobra.Command, args []string) error {
+			// Debug log: first thing when up is executed
+			fmt.Println("[DEBUG] docker compose up: starting execution")
+
+			// Preprocess compose files for build.depends_on
+			if len(p.ConfigPaths) > 0 {
+				_, _, _ = composepkg.PreprocessComposeBuildDependsOn(p.ConfigPaths)
+			}
+
 			create.pullChanged = cmd.Flags().Changed("pull")
 			create.timeChanged = cmd.Flags().Changed("timeout")
 			up.navigationMenuChanged = cmd.Flags().Changed("menu")
